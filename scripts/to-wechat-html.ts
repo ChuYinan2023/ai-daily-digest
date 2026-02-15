@@ -426,7 +426,7 @@ ${inner}
   const titleText = stripInlineMarkdown(parsed.title).replace(/^📰\s*/, '');
   html += `<h1 style="text-align:center;font-size:24px;font-weight:bold;color:${COLORS.text};margin-top:10px;margin-bottom:6px;margin-left:0;margin-right:0;line-height:1.4;">${escapeHtml(titleText)}</h1>\n`;
 
-  // 不输出 subtitle（来自 Karpathy 推荐...那行）
+  html += `<p style="text-align:center;font-size:14px;color:${COLORS.textSecondary};margin-top:0;margin-bottom:24px;margin-left:0;margin-right:0;">90个顶级技术博客。AI精选每日必读。</p>\n`;
 
   // ── Highlights (引用色块) ──
   if (parsed.highlights) {

@@ -113,7 +113,8 @@ function renderCoverHtml(data: CoverData): string {
 
   <!-- Title -->
   <div style="font-size:32px;font-weight:bold;margin-bottom:6px;letter-spacing:1px;">📰 推特AI降噪</div>
-  <div style="font-size:18px;color:rgba(255,255,255,0.7);margin-bottom:24px;">${escapeHtml(displayDate)}</div>
+  <div style="font-size:15px;color:rgba(255,220,150,0.85);margin-bottom:6px;">90个顶级技术博客。AI精选每日必读。</div>
+  <div style="font-size:18px;color:rgba(255,255,255,0.7);margin-bottom:20px;">${escapeHtml(displayDate)}</div>
 
   <!-- Divider -->
   <div style="width:60px;height:3px;background:rgba(255,220,150,0.6);border-radius:2px;margin-bottom:20px;"></div>
