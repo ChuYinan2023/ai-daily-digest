@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import process from 'node:process';
+import { convertMarkdownToWechatHtml } from './to-wechat-html';
 
 // ============================================================================
 // Constants
@@ -905,6 +906,7 @@ Options:
   --top-n <n>     Number of top articles to include (default: 15)
   --lang <lang>   Summary language: zh or en (default: zh)
   --output <path> Output file path (default: ./digest-YYYYMMDD.md)
+  --wechat        Also generate a WeChat-compatible HTML file
   --help          Show this help
 
 Environment:
@@ -925,7 +927,8 @@ async function main(): Promise<void> {
   let topN = 15;
   let lang: 'zh' | 'en' = 'zh';
   let outputPath = '';
-  
+  let wechat = false;
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === '--hours' && args[i + 1]) {
@@ -936,6 +939,8 @@ async function main(): Promise<void> {
       lang = args[++i] as 'zh' | 'en';
     } else if (arg === '--output' && args[i + 1]) {
       outputPath = args[++i]!;
+    } else if (arg === '--wechat') {
+      wechat = true;
     }
   }
   
@@ -1036,12 +1041,26 @@ async function main(): Promise<void> {
     lang,
   });
   
-  await mkdir(dirname(outputPath), { recursive: true });
+  const dir = dirname(outputPath);
+  if (dir && dir !== '.') {
+    await mkdir(dir, { recursive: true });
+  }
   await writeFile(outputPath, report);
-  
+
+  // Generate WeChat HTML if requested
+  let htmlOutputPath = '';
+  if (wechat) {
+    htmlOutputPath = outputPath.replace(/\.md$/, '.html');
+    console.log(`[digest] Generating WeChat HTML: ${htmlOutputPath}`);
+    await convertMarkdownToWechatHtml(outputPath, htmlOutputPath);
+  }
+
   console.log('');
   console.log(`[digest] ✅ Done!`);
   console.log(`[digest] 📁 Report: ${outputPath}`);
+  if (htmlOutputPath) {
+    console.log(`[digest] 📄 WeChat HTML: ${htmlOutputPath}`);
+  }
   console.log(`[digest] 📊 Stats: ${successfulSources.size} sources → ${allArticles.length} articles → ${recentArticles.length} recent → ${finalArticles.length} selected`);
   
   if (finalArticles.length > 0) {

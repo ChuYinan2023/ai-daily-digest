@@ -1,3 +1,7 @@
 generated_imgs/
 node_modules/
 *.log
+
+# Root-level digest outputs (use digests/ directory instead)
+/digest-*.md
+/digest-*.html
