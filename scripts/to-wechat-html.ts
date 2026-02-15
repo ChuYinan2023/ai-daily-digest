@@ -398,6 +398,14 @@ function parseDigestMarkdown(md: string): ParsedDigest {
 // ============================================================================
 
 function renderWechatHtml(parsed: ParsedDigest): string {
+  // WeChat editor compatibility notes:
+  // - NO display:flex (use <table> instead)
+  // - NO box-sizing
+  // - Use <section> for block wrappers
+  // - Expand margin/padding shorthand to full form
+  // - border-radius works but keep simple
+  // - display:inline-block works
+
   const wrap = (inner: string) => `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -405,10 +413,10 @@ function renderWechatHtml(parsed: ParsedDigest): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(stripInlineMarkdown(parsed.title))}</title>
 </head>
-<body style="margin:0;padding:0;background:${COLORS.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;">
-<div style="max-width:100%;margin:0 auto;padding:20px 16px;box-sizing:border-box;color:${COLORS.text};font-size:16px;line-height:1.8;">
+<body style="margin:0;padding:0;background-color:${COLORS.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;">
+<section style="max-width:100%;margin-left:auto;margin-right:auto;padding-top:20px;padding-bottom:20px;padding-left:16px;padding-right:16px;color:${COLORS.text};font-size:16px;line-height:1.8;">
 ${inner}
-</div>
+</section>
 </body>
 </html>`;
 
@@ -416,167 +424,149 @@ ${inner}
 
   // ── Title ──
   const titleText = stripInlineMarkdown(parsed.title).replace(/^📰\s*/, '');
-  html += `<h1 style="text-align:center;font-size:24px;font-weight:bold;color:${COLORS.text};margin:10px 0 6px;line-height:1.4;">${escapeHtml(titleText)}</h1>\n`;
+  html += `<h1 style="text-align:center;font-size:24px;font-weight:bold;color:${COLORS.text};margin-top:10px;margin-bottom:6px;margin-left:0;margin-right:0;line-height:1.4;">${escapeHtml(titleText)}</h1>\n`;
 
-  if (parsed.subtitle) {
-    html += `<p style="text-align:center;font-size:14px;color:${COLORS.textLight};margin:0 0 24px;">${escapeHtml(stripInlineMarkdown(parsed.subtitle))}</p>\n`;
-  }
+  // 不输出 subtitle（来自 Karpathy 推荐...那行）
 
   // ── Highlights (引用色块) ──
   if (parsed.highlights) {
-    html += `<div style="background:${COLORS.bgQuote};border-left:4px solid ${COLORS.primary};border-radius:0 8px 8px 0;padding:16px 18px;margin:0 0 24px;font-size:15px;line-height:1.8;color:${COLORS.text};">\n`;
+    html += `<section style="background-color:${COLORS.bgQuote};border-left:4px solid ${COLORS.primary};border-radius:8px;padding-top:16px;padding-bottom:16px;padding-left:18px;padding-right:18px;margin-top:0;margin-bottom:24px;margin-left:0;margin-right:0;font-size:15px;line-height:1.8;color:${COLORS.text};">\n`;
     html += `<strong style="display:block;margin-bottom:6px;font-size:16px;color:${COLORS.primary};">📝 今日看点</strong>\n`;
     html += `<span>${escapeHtml(parsed.highlights)}</span>\n`;
-    html += `</div>\n`;
+    html += `</section>\n`;
   }
 
   // ── Top 3 Cards ──
   if (parsed.topArticles.length > 0) {
-    html += `<h2 style="font-size:20px;font-weight:bold;color:${COLORS.text};margin:28px 0 16px;padding-bottom:8px;border-bottom:2px solid ${COLORS.primary};">🏆 今日必读 Top 3</h2>\n`;
+    html += `<h2 style="font-size:20px;font-weight:bold;color:${COLORS.text};margin-top:28px;margin-bottom:16px;margin-left:0;margin-right:0;padding-bottom:8px;border-bottom:2px solid ${COLORS.primary};">🏆 今日必读 Top 3</h2>\n`;
 
     for (const art of parsed.topArticles) {
       const borderColor = art.medal === '🥇' ? '#FFD700' : art.medal === '🥈' ? '#C0C0C0' : '#CD7F32';
 
-      html += `<div style="background:${COLORS.bgCard};border-radius:8px;border-left:4px solid ${borderColor};padding:16px 18px;margin:0 0 16px;box-sizing:border-box;">\n`;
+      html += `<section style="background-color:${COLORS.bgCard};border-radius:8px;border-left:4px solid ${borderColor};padding-top:16px;padding-bottom:16px;padding-left:18px;padding-right:18px;margin-top:0;margin-bottom:16px;margin-left:0;margin-right:0;">\n`;
 
       // Medal + title
-      html += `<div style="font-size:18px;font-weight:bold;color:${COLORS.text};margin-bottom:8px;">${art.medal} ${escapeHtml(art.titleZh)}</div>\n`;
+      html += `<p style="font-size:18px;font-weight:bold;color:${COLORS.text};margin-top:0;margin-bottom:8px;margin-left:0;margin-right:0;">${art.medal} ${escapeHtml(art.titleZh)}</p>\n`;
 
       // Meta (source, time, category)
       if (art.meta) {
         const metaParts = art.meta.split(' — ');
         const metaRight = metaParts.length > 1 ? metaParts[1] : '';
-        // Extract category label for coloring
         const catParts = metaRight.split(' · ').map(s => s.trim());
         let metaHtml = '';
         for (const part of catParts) {
           const catColor = getCategoryColor(part);
           if (part.match(/[🤖🔒⚙️🛠💡📝]/)) {
-            metaHtml += ` <span style="display:inline-block;background:${catColor};color:white;font-size:12px;padding:2px 8px;border-radius:4px;margin-left:4px;">${escapeHtml(part)}</span>`;
+            metaHtml += ` <span style="display:inline-block;background-color:${catColor};color:white;font-size:12px;padding-top:2px;padding-bottom:2px;padding-left:8px;padding-right:8px;border-radius:4px;margin-left:4px;">${escapeHtml(part)}</span>`;
           } else {
             metaHtml += (metaHtml ? ' · ' : '') + `<span>${escapeHtml(part)}</span>`;
           }
         }
-        html += `<div style="font-size:13px;color:${COLORS.textSecondary};margin-bottom:10px;">${metaHtml}</div>\n`;
+        html += `<p style="font-size:13px;color:${COLORS.textSecondary};margin-top:0;margin-bottom:10px;margin-left:0;margin-right:0;">${metaHtml}</p>\n`;
       }
 
       // Summary
       if (art.summary) {
-        html += `<div style="font-size:15px;line-height:1.8;color:${COLORS.text};margin-bottom:8px;">${escapeHtml(art.summary)}</div>\n`;
+        html += `<p style="font-size:15px;line-height:1.8;color:${COLORS.text};margin-top:0;margin-bottom:8px;margin-left:0;margin-right:0;">${escapeHtml(art.summary)}</p>\n`;
       }
 
       // Reason highlight
       if (art.reason) {
-        html += `<div style="background:#fff8e1;border-radius:4px;padding:8px 12px;font-size:14px;color:#e65100;margin-bottom:8px;">💡 <strong>推荐理由：</strong>${escapeHtml(art.reason)}</div>\n`;
+        html += `<section style="background-color:#fff8e1;border-radius:4px;padding-top:8px;padding-bottom:8px;padding-left:12px;padding-right:12px;font-size:14px;color:#e65100;margin-top:0;margin-bottom:8px;margin-left:0;margin-right:0;">💡 <strong>推荐理由：</strong>${escapeHtml(art.reason)}</section>\n`;
       }
 
       // Keywords
       if (art.keywords) {
         const tags = art.keywords.split(/[,，]\s*/).map(t => t.trim()).filter(Boolean);
-        html += `<div style="margin-top:6px;">`;
+        html += `<p style="margin-top:6px;margin-bottom:0;margin-left:0;margin-right:0;">`;
         for (const tag of tags) {
-          html += `<span style="display:inline-block;background:${COLORS.primaryLight};color:${COLORS.primary};font-size:12px;padding:2px 8px;border-radius:4px;margin:2px 4px 2px 0;">${escapeHtml(tag)}</span>`;
+          html += `<span style="display:inline-block;background-color:${COLORS.primaryLight};color:${COLORS.primary};font-size:12px;padding-top:2px;padding-bottom:2px;padding-left:8px;padding-right:8px;border-radius:4px;margin-top:2px;margin-bottom:2px;margin-left:0;margin-right:4px;">${escapeHtml(tag)}</span>`;
         }
-        html += `</div>\n`;
+        html += `</p>\n`;
       }
 
-      html += `</div>\n`;
+      html += `</section>\n`;
     }
   }
 
-  // ── Stats Overview ──
+  // ── Stats Overview (use <table> instead of flex) ──
   if (parsed.stats) {
-    html += `<h2 style="font-size:20px;font-weight:bold;color:${COLORS.text};margin:28px 0 16px;padding-bottom:8px;border-bottom:2px solid ${COLORS.primary};">📊 数据概览</h2>\n`;
+    html += `<h2 style="font-size:20px;font-weight:bold;color:${COLORS.text};margin-top:28px;margin-bottom:16px;margin-left:0;margin-right:0;padding-bottom:8px;border-bottom:2px solid ${COLORS.primary};">📊 数据概览</h2>\n`;
 
-    html += `<div style="display:flex;justify-content:space-around;text-align:center;background:${COLORS.bgCard};border-radius:8px;padding:16px 8px;margin:0 0 16px;">\n`;
     const statsItems = [
       { label: '扫描源', value: parsed.stats.sources },
       { label: '抓取文章', value: parsed.stats.articles },
       { label: '时间范围', value: parsed.stats.timeRange },
       { label: '精选', value: stripInlineMarkdown(parsed.stats.selected) },
     ];
+
+    html += `<table style="width:100%;border-collapse:collapse;background-color:${COLORS.bgCard};border-radius:8px;margin-top:0;margin-bottom:16px;margin-left:0;margin-right:0;"><tbody><tr>\n`;
     for (const item of statsItems) {
-      html += `<div style="flex:1;"><div style="font-size:18px;font-weight:bold;color:${COLORS.primary};">${escapeHtml(item.value)}</div><div style="font-size:12px;color:${COLORS.textLight};margin-top:4px;">${escapeHtml(item.label)}</div></div>\n`;
+      html += `<td style="text-align:center;padding-top:16px;padding-bottom:16px;padding-left:8px;padding-right:8px;width:25%;"><p style="font-size:18px;font-weight:bold;color:${COLORS.primary};margin-top:0;margin-bottom:4px;margin-left:0;margin-right:0;">${escapeHtml(item.value)}</p><p style="font-size:12px;color:${COLORS.textLight};margin-top:0;margin-bottom:0;margin-left:0;margin-right:0;">${escapeHtml(item.label)}</p></td>\n`;
     }
-    html += `</div>\n`;
+    html += `</tr></tbody></table>\n`;
   }
 
-  // ── Tag Cloud ──
-  if (parsed.tagCloud) {
-    html += `<div style="text-align:center;margin:0 0 24px;">\n`;
-    // Parse tag cloud: **word**(count) · word(count) · ...
-    const tagParts = parsed.tagCloud.split(' · ');
-    for (const part of tagParts) {
-      const match = part.match(/^\*\*(.+?)\*\*\((\d+)\)$/);
-      if (match) {
-        // Top tag - bigger, primary color
-        html += `<span style="display:inline-block;background:${COLORS.primary};color:white;font-size:14px;font-weight:bold;padding:4px 12px;border-radius:4px;margin:3px;">${escapeHtml(match[1])} ${match[2]}</span>`;
-      } else {
-        const match2 = part.match(/^(.+?)\((\d+)\)$/);
-        if (match2) {
-          html += `<span style="display:inline-block;background:${COLORS.bgCard};color:${COLORS.textSecondary};font-size:13px;padding:3px 10px;border-radius:4px;margin:3px;">${escapeHtml(match2[1])} ${match2[2]}</span>`;
-        }
-      }
-    }
-    html += `\n</div>\n`;
-  }
+  // 不输出 Tag Cloud（数据概览后面的标签）
 
   // ── Divider ──
-  html += `<div style="border-top:1px dashed ${COLORS.border};margin:24px 0;"></div>\n`;
+  html += `<p style="border-top:1px dashed ${COLORS.border};margin-top:24px;margin-bottom:24px;margin-left:0;margin-right:0;height:0;overflow:hidden;">&nbsp;</p>\n`;
 
   // ── Category Articles ──
   for (const cat of parsed.categories) {
     const catColor = getCategoryColor(cat.label);
 
-    html += `<h2 style="font-size:20px;font-weight:bold;color:${COLORS.text};margin:24px 0 16px;"><span style="display:inline-block;background:${catColor};color:white;font-size:14px;padding:2px 10px;border-radius:4px;margin-right:8px;vertical-align:middle;">${cat.emoji} ${escapeHtml(cat.label)}</span></h2>\n`;
+    html += `<h2 style="font-size:20px;font-weight:bold;color:${COLORS.text};margin-top:24px;margin-bottom:16px;margin-left:0;margin-right:0;"><span style="display:inline-block;background-color:${catColor};color:white;font-size:14px;padding-top:2px;padding-bottom:2px;padding-left:10px;padding-right:10px;border-radius:4px;margin-right:8px;vertical-align:middle;">${cat.emoji} ${escapeHtml(cat.label)}</span></h2>\n`;
 
     for (const art of cat.articles) {
-      html += `<div style="border-bottom:1px dashed ${COLORS.borderLight};padding:12px 0;margin:0 0 4px;">\n`;
+      html += `<section style="border-bottom:1px dashed ${COLORS.borderLight};padding-top:12px;padding-bottom:12px;padding-left:0;padding-right:0;margin-top:0;margin-bottom:4px;margin-left:0;margin-right:0;">\n`;
 
       // Title with index
-      html += `<div style="font-size:16px;font-weight:bold;color:${COLORS.text};margin-bottom:6px;"><span style="color:${COLORS.primary};margin-right:4px;">${escapeHtml(art.index)}.</span> ${escapeHtml(art.titleZh)}</div>\n`;
+      html += `<p style="font-size:16px;font-weight:bold;color:${COLORS.text};margin-top:0;margin-bottom:6px;margin-left:0;margin-right:0;"><span style="color:${COLORS.primary};margin-right:4px;">${escapeHtml(art.index)}.</span> ${escapeHtml(art.titleZh)}</p>\n`;
 
       // Meta
       if (art.meta) {
         const metaClean = stripInlineMarkdown(art.meta);
-        html += `<div style="font-size:13px;color:${COLORS.textLight};margin-bottom:6px;">${escapeHtml(metaClean)}</div>\n`;
+        html += `<p style="font-size:13px;color:${COLORS.textLight};margin-top:0;margin-bottom:6px;margin-left:0;margin-right:0;">${escapeHtml(metaClean)}</p>\n`;
       }
 
       // Summary
       if (art.summary) {
-        html += `<div style="font-size:15px;line-height:1.8;color:${COLORS.textSecondary};">${escapeHtml(art.summary)}</div>\n`;
+        html += `<p style="font-size:15px;line-height:1.8;color:${COLORS.textSecondary};margin-top:0;margin-bottom:0;margin-left:0;margin-right:0;">${escapeHtml(art.summary)}</p>\n`;
       }
 
       // Keywords
       if (art.keywords) {
         const tags = art.keywords.split(/[,，]\s*/).map(t => t.trim()).filter(Boolean);
-        html += `<div style="margin-top:6px;">`;
+        html += `<p style="margin-top:6px;margin-bottom:0;margin-left:0;margin-right:0;">`;
         for (const tag of tags) {
-          html += `<span style="display:inline-block;background:${COLORS.primaryLight};color:${COLORS.primary};font-size:12px;padding:1px 6px;border-radius:3px;margin:2px 3px 2px 0;">${escapeHtml(tag)}</span>`;
+          html += `<span style="display:inline-block;background-color:${COLORS.primaryLight};color:${COLORS.primary};font-size:12px;padding-top:1px;padding-bottom:1px;padding-left:6px;padding-right:6px;border-radius:3px;margin-top:2px;margin-bottom:2px;margin-left:0;margin-right:3px;">${escapeHtml(tag)}</span>`;
         }
-        html += `</div>\n`;
+        html += `</p>\n`;
       }
 
-      html += `</div>\n`;
+      html += `</section>\n`;
     }
   }
 
   // ── Footer / Follow CTA ──
-  html += `<div style="border-top:1px dashed ${COLORS.border};margin:24px 0;"></div>\n`;
-  html += `<div style="text-align:center;padding:20px 0;">\n`;
-  html += `<div style="font-size:16px;font-weight:bold;color:${COLORS.primary};margin-bottom:8px;">📬 每日精选，不错过任何技术热点</div>\n`;
-  html += `<div style="font-size:14px;color:${COLORS.textSecondary};margin-bottom:12px;">关注「懂点儿AI」公众号，获取更多 AI 实用技巧</div>\n`;
-  html += `<div style="display:inline-block;background:${COLORS.primary};color:white;font-size:14px;font-weight:bold;padding:8px 24px;border-radius:20px;">⭐ 点击关注</div>\n`;
-  html += `</div>\n`;
+  html += `<p style="border-top:1px dashed ${COLORS.border};margin-top:24px;margin-bottom:24px;margin-left:0;margin-right:0;height:0;overflow:hidden;">&nbsp;</p>\n`;
+  html += `<section style="text-align:center;padding-top:20px;padding-bottom:20px;padding-left:0;padding-right:0;">\n`;
+  html += `<p style="font-size:16px;font-weight:bold;color:${COLORS.primary};margin-top:0;margin-bottom:8px;margin-left:0;margin-right:0;">📬 每日精选，不错过任何技术热点</p>\n`;
+  html += `<p style="font-size:14px;color:${COLORS.textSecondary};margin-top:0;margin-bottom:12px;margin-left:0;margin-right:0;">关注「碳硅边界」公众号，获取更多 AI 实用技巧</p>\n`;
+  // 不输出点击关注按钮
+  html += `</section>\n`;
 
-  // Footer meta
+  // Footer meta (去掉最后一句「懂点儿AI」相关)
   if (parsed.footer) {
-    const footerLines = parsed.footer.split('\n').filter(Boolean);
-    html += `<div style="text-align:center;font-size:12px;color:${COLORS.textLight};margin-top:16px;line-height:1.6;">\n`;
-    for (const fl of footerLines) {
-      html += `<div>${escapeHtml(fl)}</div>\n`;
+    const footerLines = parsed.footer.split('\n').filter(Boolean).filter(l => !l.includes('懂点儿AI'));
+    if (footerLines.length > 0) {
+      html += `<section style="text-align:center;font-size:12px;color:${COLORS.textLight};margin-top:16px;margin-bottom:0;margin-left:0;margin-right:0;line-height:1.6;">\n`;
+      for (const fl of footerLines) {
+        html += `<p style="margin-top:0;margin-bottom:4px;margin-left:0;margin-right:0;">${escapeHtml(fl)}</p>\n`;
+      }
+      html += `</section>\n`;
     }
-    html += `</div>\n`;
   }
 
   return wrap(html);

@@ -2,6 +2,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import process from 'node:process';
 import { convertMarkdownToWechatHtml } from './to-wechat-html';
+import { generateCoverHtml } from './gen-cover';
 
 // ============================================================================
 // Constants
@@ -1047,12 +1048,16 @@ async function main(): Promise<void> {
   }
   await writeFile(outputPath, report);
 
-  // Generate WeChat HTML if requested
+  // Generate WeChat HTML + cover if requested
   let htmlOutputPath = '';
+  let coverOutputPath = '';
   if (wechat) {
     htmlOutputPath = outputPath.replace(/\.md$/, '.html');
+    coverOutputPath = outputPath.replace(/\.md$/, '-cover.html');
     console.log(`[digest] Generating WeChat HTML: ${htmlOutputPath}`);
     await convertMarkdownToWechatHtml(outputPath, htmlOutputPath);
+    console.log(`[digest] Generating cover: ${coverOutputPath}`);
+    await generateCoverHtml(outputPath, coverOutputPath);
   }
 
   console.log('');
@@ -1060,6 +1065,7 @@ async function main(): Promise<void> {
   console.log(`[digest] 📁 Report: ${outputPath}`);
   if (htmlOutputPath) {
     console.log(`[digest] 📄 WeChat HTML: ${htmlOutputPath}`);
+    console.log(`[digest] 🖼️  Cover: ${coverOutputPath}`);
   }
   console.log(`[digest] 📊 Stats: ${successfulSources.size} sources → ${allArticles.length} articles → ${recentArticles.length} recent → ${finalArticles.length} selected`);
   

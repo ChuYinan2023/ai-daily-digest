@@ -21,6 +21,16 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node.js (for Puppeteer)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Puppeteer
+        run: |
+          npm install puppeteer
+          npx puppeteer browsers install chrome
+
       - name: Generate digest
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -33,6 +43,14 @@ jobs:
             --lang zh \
             --wechat \
             --output "digests/digest-${DATE}.md"
+
+      - name: Screenshot cover image
+        run: |
+          DATE=$(date -u +%Y%m%d)
+          COVER_HTML="digests/digest-${DATE}-cover.html"
+          if [ -f "$COVER_HTML" ]; then
+            bun scripts/screenshot-cover.ts "$COVER_HTML" "digests/digest-${DATE}-cover.png"
+          fi
 
       - name: Commit and push
         run: |
